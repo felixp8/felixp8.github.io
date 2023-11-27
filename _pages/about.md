@@ -2,7 +2,7 @@
 layout: about
 title: about
 permalink: /
-subtitle: Neuroscience & ML
+subtitle: 
 
 profile:
   align: right
