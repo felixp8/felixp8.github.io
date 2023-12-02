@@ -35,7 +35,7 @@ so that $$ x_3(t + 1) = x_1(t) $$. Of course, we can only ever create delays of 
 
 In continuous-time systems, state variables affect each other instantaneously. It is therefore not obvious how to recreate this sort of time-delayed relationship between variables, though this occurs often in real-world systems, e.g. in interacting brain regions. This problem has been extensively studied in a variety of fields, but because I am too lazy to look into it, I just messed around a bit myself and found a solution that is probably pretty useless.
 
-## Problem statement
+### Problem statement
 
 Let me try to state the problem a little more clearly. We have a continuous-time dynamical system
 
@@ -47,18 +47,19 @@ $$ \dot{y}(t) = \dot{x}_{i}(t - \tau). $$
 
 In theory, we could maintain an entire delayed copy of $$ x $$ and compute $$ \dot{x}_{i}(t - \tau) $$ just from $$ f $$, but this is generally impractical because
 1. we'd need to also store all external inputs $$ u(t) $$ for $$ [t - \tau, t] $$
-2. we'd need to exactly initialize this copied system to exactly $$ x(t - \tau) $$
+2. we'd need to initialize this copied system exactly to $$ x(t - \tau) $$
+
 Instead, if we could estimate $$ \dot{x}_{i}(t - \tau) $$ purely from observables at time $$ t $$ and allow for some margin of error in initializing $$ y $$, that would be potentially less accurate but more useful. 
 
-## Prior work: Finite differences
+### Prior work: Finite differences
 
 Though I didn't do much research on prior work, I did look at the first search result[^fn1]. The method proposed there is very simple: approximate 
 
-$$ \dot{x}_{i}(t - \tau) \approx (x_{i}(t) - y(t)) / \tau. $$
+$$ \dot{x}_{i}(t - \tau) \approx \dot{y}(t) = \frac{x_{i}(t) - y(t)}{\tau}. $$
 
 If $$ y(t) = x_{i}(t - \tau) $$ exactly, then the estimate is equal to 
 
-$$ (x_{i}(t) - x_{i}(t - \tau)) / \tau, $$
+$$ \frac{x_{i}(t) - x_{i}(t - \tau)}{\tau}, $$
 
 which converges to $$ \dot{x}_{i}(t - \tau) $$ as $$ \tau \to 0 $$.
 
@@ -84,7 +85,7 @@ $$
 \dot{y}_m = (y_{m-1} - y_m) / \Delta t 
 $$
 
-which gives a total delay of $$ m \cdot \Delta t $$. If it helps to see it in matrix form, the above could also be written like this:
+which gives a total delay of $$ m \cdot \Delta t $$ for $$ y_m $$. If it helps to see it in matrix form, the above could also be written like this:
 
 $$
 \begin{bmatrix} 
@@ -127,15 +128,15 @@ where $$ f_{lin} $$ is whatever component of $$ f $$ can be represented as a lin
 There are a few nice things about this method:
 
 1. The dynamics of the delayed variables do not depend explicitly on the inputs at all. Instead, they account for the effect of the inputs only by looking at $$ x_{i} $$ directly.
-2. The system sort of self-corrects for inaccurate initializations. If $$ \Delta t $$ is small enough, we can assume that all gradient estimates are accurate when $$ y $$ values are accurate. Then, for example, if $$ y $$ is initialized too small, the gradient estimate from the finite difference will be bigger than the true gradient estimate, which compensates for the initialization error.
+2. The system sort of self-corrects for inaccurate initializations. If $$ \Delta t $$ is small enough, we can assume that all gradient estimates are accurate when $$ y $$ values are accurate. Then, for example, if $$ y $$ is initialized too small, the gradient estimate from the finite difference will be bigger than the true gradient, which compensates for the initialization error.
 
 The method can be extended/improved with central differences or unevenly-spaced $$ y $$ points, which may give better accuracy[^fn1][^fn2].
 
-Lastly, notice that if our integration timestep is also $$ \Delta t $$, then $$ \pm 1 / \Delta t = \pm 1 $$, and we have recreated the original discrete system. The -1's on the diagonal would be canceled out by adding the identity matrix, since discrete systems output the next state, not the difference between the current and next state.
+Lastly, notice that if our integration timestep is also $$ \Delta t $$, then $$ \Delta t \cdot \pm 1 / \Delta t = \pm 1 $$, and we have recreated the original discrete system. The -1's on the diagonal would be canceled out by adding the identity matrix, since discrete systems output the next state, not the difference between the current and next state.
 
-## Finding an alternate solution by inverting the continuous-to-discrete transformation
+### Finding an alternate solution by inverting the continuous-to-discrete transformation
 
-Instead of doing something principled like the paper above, I decided to just try to directly convert a discrete-time linear system with delays into a continuous-time one. Thanks to Stack Exchange, I found that the bilinear transform is easily invertible^[fn3]. For some background, the bilinear transform is essentially a trapezoidal approximation of a continuous-time linear system. 
+Instead of doing something principled like the paper above, I decided to just try to directly convert a discrete-time linear system with delays into a continuous-time one. Thanks to Stack Exchange, I found that the bilinear transform is easily invertible[^fn3]. For some background, the bilinear transform is essentially a trapezoidal approximation of a continuous-time linear system. 
 
 Taking a discrete-time linear system with a delay, like the one shown in the very first section, we can apply the inverse bilinear transform to get a continuous-time system that should display the same behavior. Though I did not expect it to, it worked:
 
@@ -145,25 +146,25 @@ Doing this a few times, there was a clear pattern to the resulting continuous-ti
 
 $$ \dot{y}(t) = -\dot{x}_{i}(t) + \frac{2}{\tau}(x_{i}(t) - y(t)). $$
 
-This equation did not immediately make sense to me, but ultimately it's quite straightforward if we rearrange it. 
+This equation did not immediately make sense to me, but it's actually quite straightforward if we rearrange it. 
 
 $$ \dot{y}(t) + \dot{x}_{i}(t) = \frac{2}{\tau}(x_{i}(t) - y(t)) $$
 
-$$ (\dot{y}(t) + \dot{x}_{i}(t)) / 2 = (x_{i}(t) - y(t)) / \tau $$
+$$ \frac{\dot{y}(t) + \dot{x}_{i}(t)}{2} = \frac{x_{i}(t) - y(t)}{\tau} $$
 
 If we assume the ideal of $$ y(t) = x_{i}(t - \tau) $$, we get
 
-$$ (\dot{x}_{i}(t - \tau) + \dot{x}_{i}(t)) / 2 = (x_{i}(t) - x_{i}(t - \tau)) / \tau. $$
+$$ \frac{\dot{x}_{i}(t - \tau) + \dot{x}_{i}(t)}{2} = \frac{x_{i}(t) - x_{i}(t - \tau)}{\tau}. $$
 
-Basically, the assumption of this solution is that the average slope between $$ x_{i}(t - \tau) $$ and $$ x_{i}(t) $$ ( $$ (x_{i}(t) - x_{i}(t - \tau)) / \tau $$ ) is right in the middle of the slope at the left edge ( $$ \dot{x}_{i}(t - \tau) $$ ) and the slope at the right edge ( $$ \dot{x}(t - \tau) $$ ). This would be true of the second derivative is constant.
+Basically, the assumption of this solution is that the average slope between $$ x_{i}(t - \tau) $$ and $$ x_{i}(t) $$ (aka the right-hand side of the equation) is exactly in the middle of the slope at the left edge (aka $$ \dot{x}_{i}(t - \tau) $$) and the slope at the right edge (aka $$ \dot{x}(t - \tau) $$). This would be true of the second derivative is constant.
 
-The good thing about this approximation is that it retains all the benefits of the finite difference method, relying only on current observables and compensating for inaccurate initializations, while taking into account the additional information we know about $$ \dot{x}_{i}(t) $$ that was ignored by the finite difference method.
+The good thing about this approximation is that it retains all the benefits of the finite difference method, relying only on current observables and compensating for inaccurate initializations, while taking into account the additional information we know about $$ \dot{x}_{i}(t) $$ that was ignored by the finite difference method. Of course, this method also becomes more inaccurate as $$ \tau $$ grows, so the same partitioning of the delay used with the finite differences can still be used here, regardless of whether $$ f $$ is linear or non-linear.
 
-## Generalizing the alternate solution with Taylor expansions
+### Generalizing the alternate solution with Taylor expansions
 
 TODO
 
-## References
+### References
 
 [^fn1]: Sun, Jian-Qiao. A method of continuous time approximation of delayed dynamical systems. In *Communications in Nonlinear Science and Numerical Simulation*, 2009. [URL](https://www.sciencedirect.com/science/article/pii/S1007570408000610)
 
