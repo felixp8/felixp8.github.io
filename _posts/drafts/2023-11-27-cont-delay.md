@@ -4,7 +4,7 @@ title: approximation of discrete delays with continuous-time dynamics
 date: 2023-11-27 21:01:00
 description: some pointless and basic math noodling
 tags: math code
-categories: dynamical-systems
+categories: dynamical-systems wip
 ---
 
 In discrete-time dynamical systems, it’s easy to create a state variable that is a time-delayed copy of another. For example, if we have a linear system 
@@ -98,11 +98,11 @@ $$
 \end{bmatrix} = 
 \begin{bmatrix} 
     f_{lin} & 0 &  & \dots &  & 0 \\
-    \frac{1}{\Delta t} & -\frac{1}{\Delta t} & 0 &  & \dots & \\
-    0 & \frac{1}{\Delta t} & -\frac{1}{\Delta t} &  & \dots & \\
+    1/\Delta t & -1/\Delta t & 0 &  & \dots & \\
+    0 & 1/\Delta t & -1/\Delta t &  & \dots & \\
      &  & \ddots & \ddots &  & \\
      &  &  & \ddots & \ddots & \\
-    0 &  & \dots &  & \frac{1}{\Delta t} & -\frac{1}{\Delta t}
+    0 &  & \dots &  & 1/\Delta t & -1/\Delta t
 \end{bmatrix}
 \begin{bmatrix}
     x \\
@@ -156,7 +156,7 @@ If we assume the ideal of $$ y(t) = x_{i}(t - \tau) $$, we get
 
 $$ \frac{\dot{x}_{i}(t - \tau) + \dot{x}_{i}(t)}{2} = \frac{x_{i}(t) - x_{i}(t - \tau)}{\tau}. $$
 
-Basically, the assumption of this solution is that the average slope between $$ x_{i}(t - \tau) $$ and $$ x_{i}(t) $$ (aka the right-hand side of the equation) is exactly in between the slope at the left edge (aka $$ \dot{x}_{i}(t - \tau) $$) and the slope at the right edge (aka $$ \dot{x}(t) $$). This would be true if the second derivative were constant.
+Basically, the assumption of this method is that the average slope between $$ x_{i}(t - \tau) $$ and $$ x_{i}(t) $$ (aka the right-hand side of the equation) is exactly in between the slope at the left edge (aka $$ \dot{x}_{i}(t - \tau) $$) and the slope at the right edge (aka $$ \dot{x}(t) $$). This would be true if the second derivative were constant.
 
 The good thing about this approximation is that it retains all the benefits of the finite difference method, relying only on current observables and compensating for inaccurate initializations, while taking into account the additional information we know about $$ \dot{x}_{i}(t) $$ that was ignored by the finite difference method. Of course, this method also becomes more inaccurate as $$ \tau $$ grows, so the same partitioning of the delay used with the finite differences can still be used here, regardless of whether $$ f $$ is linear or non-linear.
 
@@ -168,7 +168,7 @@ $$
 \dot{x}_{i}(t - \tau) = \dot{x}_{i}(t) + \frac{(-\tau)}{1!}\ddot{x}_{i}(t) + \frac{(-\tau)^2}{2!}x^{(3)}_{i}(t) + ...
 $$
 
-where you would truncate the expansion at some term to get an approximation. However, this very clearly does not correspond to our previous methods. In particular, these approximations ignore the information in $$ y(t) $$ and $$ y(t) $$.
+where you would truncate the expansion at some term to get an approximation. However, this very clearly does not correspond to our previous methods. In particular, these approximations ignore the information in $$ x(t) $$ and $$ y(t) $$.
 
 But what do the values of $$ x(t) $$ and $$ y(t) $$ tell us? Again assuming the ideal that $$ y(t) = x_{i}(t - \tau) $$, then 
 
@@ -179,47 +179,49 @@ If we replace $$ \dot{x}(t^*) $$ in the integral with a Taylor approximation of 
 Now for some algebra:
 
 $$ 
-\begin{align}
+\begin{align*}
 x_{i}(t) - x_{i}(t - \tau) &= \int_{t - \tau}^{t} \dot{x}_{i}(t^*) dt^* \\
 &= \int_{-\tau}^{0} \dot{x}_{i}(t + \tau^*) d\tau^* \\
 &= \int_{-\tau}^{0} d\tau^* \left(\dot{x}_{i}(t) + \frac{\tau^*}{1!}\ddot{x}_{i}(t) + \frac{(\tau^*)^2}{2!}x^{(3)}_{i}(t) + ... \right) \\
 &= \left[ \frac{\tau^*}{1!} \dot{x}_{i}(t) + \frac{(\tau^*)^2}{2!}\ddot{x}_{i}(t) + \frac{(\tau^*)^3}{3!}x^{(3)}_{i}(t) + ... \right]_{-\tau}^{0} \\
 &= - \left( \frac{(-\tau)}{1!} \dot{x}_{i}(t) + \frac{(-\tau)^2}{2!}\ddot{x}_{i}(t) + \frac{(-\tau)^3}{3!}x^{(3)}_{i}(t) 
 + ... \right)
-\end{align}
+\end{align*}
 $$
 
 Now truncating the expansion at the $$ n $$-th term and solving for the $$ n + 1 $$-th derivative, we get:
 
 $$
-\begin{align}
+\begin{align*}
 x_{i}(t) - x_{i}(t - \tau) &\approx - \left( \frac{(-\tau)}{1!} \dot{x}_{i}(t) + \frac{(-\tau)^2}{2!}\ddot{x}_{i}(t) + ... + \frac{(-\tau)^{n}}{n!}x^{(n)}_{i}(t) + \frac{(-\tau)^{n+1}}{(n+1)!} x^{(n+1)}_{i}(t) \right) \\
 \frac{(-\tau)^{n+1}}{(n+1)!}x^{(n+1)}_{i}(t) &\approx - \left( x_{i}(t) - x_{i}(t - \tau) + \frac{(-\tau)}{1!} \dot{x}_{i}(t) + \frac{(-\tau)^2}{2!}\ddot{x}_{i}(t) + ... + \frac{(-\tau)^{n}}{n!}x^{(n)}_{i}(t) \right) \\
 x^{(n+1)}_{i}(t) &\approx -\frac{(n + 1)!}{(-\tau)^{n+1}} \left( x_{i}(t) - x_{i}(t - \tau) + \frac{(-\tau)}{1!} \dot{x}_{i}(t) + \frac{(-\tau)^2}{2!}\ddot{x}_{i}(t) + ... + \frac{(-\tau)^{n}}{n!}x^{(n)}_{i}(t) \right)
-\end{align}
+\end{align*}
 $$
 
 Finally, plugging this back into the original Taylor approximation, we get:
 
 $$
-\begin{align}
+\begin{align*}
 \dot{x}_{i}(t - \tau) &\approx \dot{x}_{i}(t) + \frac{(-\tau)}{1!}\ddot{x}_{i}(t) + ... + \frac{(-\tau)^{n-1}}{n-1!}x^{(n)}_{i}(t) + \frac{(-\tau)^{n}}{n!}x^{(n+1)}_{i}(t) \\
-&= \dot{x}_{i}(t) + \frac{(-\tau)}{1!}\ddot{x}_{i}(t) + ... + \frac{(-\tau)^{n-1}}{n-1!}x^{(n)}_{i}(t) + \frac{(-\tau)^{n}}{n!} \cdot -\frac{(n + 1)!}{(-\tau)^{n+1}} \left( x_{i}(t) - x_{i}(t - \tau) + \frac{(-\tau)}{1!} \dot{x}_{i}(t) + ... + \frac{(-\tau)^{n}}{n!}x^{(n)}_{i}(t) \right) \\
-&= \dot{x}_{i}(t) + \frac{(-\tau)}{1!}\ddot{x}_{i}(t) + ... + \frac{(-\tau)^{n-1}}{n-1!}x^{(n)}_{i}(t) + \frac{n+1}{\tau} \left( x_{i}(t) - x_{i}(t - \tau) + \frac{(-\tau)}{1!} \dot{x}_{i}(t) + ... + \frac{(-\tau)^{n}}{n!}x^{(n)}_{i}(t) \right) \\
+&= \dot{x}_{i}(t) + \frac{(-\tau)}{1!}\ddot{x}_{i}(t) + ... + \frac{(-\tau)^{n-1}}{n-1!}x^{(n)}_{i}(t) + \\
+    &\quad \frac{(-\tau)^{n}}{n!} \cdot -\frac{(n + 1)!}{(-\tau)^{n+1}} \left( x_{i}(t) - x_{i}(t - \tau) + \frac{(-\tau)}{1!} \dot{x}_{i}(t) + ... + \frac{(-\tau)^{n}}{n!}x^{(n)}_{i}(t) \right) \\
+&= \dot{x}_{i}(t) + \frac{(-\tau)}{1!}\ddot{x}_{i}(t) + ... + \frac{(-\tau)^{n-1}}{n-1!}x^{(n)}_{i}(t) + \\
+    &\quad \frac{n+1}{\tau} \left( x_{i}(t) - x_{i}(t - \tau) + \frac{(-\tau)}{1!} \dot{x}_{i}(t) + ... + \frac{(-\tau)^{n}}{n!}x^{(n)}_{i}(t) \right) \\
 &= \frac{n + 1}{\tau} (x_{i}(t) - x_{i}(t - \tau)) + \left(1 - \frac{n + 1}{1!}\right) \dot{x}_{i}(t) + ... + \left(\frac{1}{(n - 1)!} - \frac{n + 1}{n!}\right) (-\tau)^{n-1} x^{(n)}_{i}(t)
-\end{align}
+\end{align*}
 $$
 
 That was fun. Now, let's look at the simplest approximation, for $$ n = 0 $$. Plugging it in and ignoring all derivatives of order higher than $$ 0 $$ (i.e., all of them), we have:
 
 $$
-\dot{x}_{i}(t - \tau) = \frac{0 + 1}{\tau} (x_{i}(t) - x_{i}(t - \tau)) = \frac{x_{i}(t) - x_{i}(t - \tau)}{\tau}
+\dot{x}_{i}(t - \tau) \approx \frac{0 + 1}{\tau} (x_{i}(t) - x_{i}(t - \tau)) = \frac{x_{i}(t) - x_{i}(t - \tau)}{\tau}
 $$
 
 which looks a little familiar... Then, for $$ n = 1 $$, we have:
 
 $$
-\dot{x}_{i}(t - \tau) = \frac{1 + 1}{\tau} (x_{i}(t) - x_{i}(t - \tau)) + \left(1 - \frac{1 + 1}{1!}\right) \dot{x}_{i}(t) = \frac{2}{\tau} (x_{i}(t) - x_{i}(t - \tau)) - \dot{x}_{i}(t).
+\dot{x}_{i}(t - \tau) \approx \frac{1 + 1}{\tau} (x_{i}(t) - x_{i}(t - \tau)) + \left(1 - \frac{1 + 1}{1!}\right) \dot{x}_{i}(t) = \frac{2}{\tau} (x_{i}(t) - x_{i}(t - \tau)) - \dot{x}_{i}(t).
 $$
 
 So, the last two methods were all specific cases of this constrained Taylor approximation. We can arbitrarily increase the degree of this approximation as long as we can compute $$ x^{(n - 1)}_{i}(t) $$, which in general is not particularly easy but is very tractable for linear systems.
